@@ -4,23 +4,24 @@ module MIPS_datapath(
   input reset,
   
   //From MIPS controller
-  input RegDst,
-  input Jump,
-  input Branch,
-  input MemRead,
-  input MemToReg,
-//   input ALUOp, //this is from MIPS controller to ALU controller
-  input MemWrite, 
-  input ALUSrc,
-  input RegWrite,
-  input Link,
-  input PC_en,
+  input RegDst,          //if its an R or I type instruction and shoul rd be read
+  input Jump,           
+  input Branch,        
+  input MemRead,      
+  input MemToReg,    
+  input MemWrite,   
+  input ALUSrc,    //whether alu's input is 2nd reg or immediate value
+  input RegWrite, 
+  input Link,    //For jal instruction
+  input JR,     //For Jump to reg instruction
+  input PC_en, //enable PC to read its input value
   
   //From ALU controller
-  input [3:0] ALU_opcode, //4bits, 1 bit is for binvert
+  input [3:0] ALU_opcode, //4bits, as seen in a prev slide, ig 1 extra bit for binvert, pretty sure
   
   
-  output wire [5:0] OpCode //To controller
+  output wire [5:0] OpCode, //To controller
+  output wire [5:0] funct  //To ALU_controller and controller
 );
   
   
@@ -36,18 +37,20 @@ module MIPS_datapath(
   wire [4:0] rd = instr_out[15:11];
   wire [15:0] immediate = instr_out[15:0];
   wire [25:0] jump_target = instr_out[25:0];
+  assign funct = instr_out[5:0];
   
-  //------------------------------------------------------------------------  
+  //------------------------------------------------------------------------
+  
   // PC
   wire [31:0] PC_plus4, PC_next;
   wire ALU_zero;
   
-  PC Program_Counter(.clk(clk), .reset(reset), .en(PC_en), .inp(PC_next), .out(PC_out));
+  PC Program_Counter(.clk(clk), .reset(reset), .en(PC_en), .d(PC_next), .q(PC_out));
   
   //PC+4
   adder PC_plus4_adder(.a(PC_out), .b(32'd4), .y(PC_plus4));
   
-  // Jump address calc //////////////////////////////////////////////////////////////////////////
+  // Jump address calc
   wire [28:0] jump_target_shifted;
   sll_2_pad #(.INP_WIDTH(26)) Shift_Jump_2(.in(jump_target), .out(jump_target_shifted));
   wire [31:0] jump_addr = {PC_plus4[31:28], jump_target_shifted};
@@ -73,19 +76,29 @@ module MIPS_datapath(
   );
   
   // whether Jump instr
+  wire [31:0] PC_jump_mux_out;
   mux2to1 #(.WIDTH(32)) PC_jump_mux(
     .in0(PC_branch_mux_out),
     .in1(jump_addr),
     .sel(Jump),
-    .out(PC_next)
+    .out(PC_jump_mux_out)
   );
   
+  //JR instruction
+  wire [31:0] reg_read_data1;
+  mux2to1 #(.WIDTH(32)) PC_Jump_Reg(
+    .in0(PC_jump_mux_out),
+    .in1(reg_read_data1),
+    .sel(JR),
+    .out(PC_next)
+  );
+ 
   //---------------------------------------------------------------------------------------
   
   // Registers
   wire [4:0] write_reg_intermediate, write_reg_final;
   wire [31:0] write_data;
-  wire [31:0] reg_read_data1, reg_read_data2;
+  wire [31:0] reg_read_data2;
   
   // R-type or I-type instr
   mux2to1 #(.WIDTH(5)) write_reg_mux(
