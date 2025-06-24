@@ -5,6 +5,7 @@ This project was made a culmination of 3 courses:
 - Computer Architecture and Organization
 - Hardware Lab
 
+
 The processor implemented supports a subset of the core MIPS instruction set:
 
 • The memory reference instructions: load word (lw) and store words (sw) 
