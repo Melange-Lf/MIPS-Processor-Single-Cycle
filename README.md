@@ -1,3 +1,5 @@
+##scored 50/50 in this project
+
 # 32-bit MIPS Single Cycle Processor
 
 This project was made a culmination of 3 courses:
