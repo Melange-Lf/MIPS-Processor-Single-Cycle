@@ -1,4 +1,4 @@
-##scored 50/50 in this project
+`## Scored full marks on the project 50/50`
 
 # 32-bit MIPS Single Cycle Processor
 
